@@ -4,3 +4,6 @@ C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAdd
 C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Debug\netidxExcelDnaAddin.csproj.CoreCompileInputs.cache
 C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Debug\netidxExcelDnaAddin.dll
 C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Debug\netidxExcelDnaAddin.pdb
+C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Debug\netidxExcelDnaAddin.Properties.Resources.resources
+C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Debug\netidxExcelDnaAddin.csproj.GenerateResource.cache
+C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\bin\Debug\lib\netidx_excel.dll
