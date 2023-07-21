@@ -10,14 +10,14 @@ namespace netidxExcelDnaAddin
 {
     public class Class1
     {
-        // 声明Rust DLL中的函数签名
-        [DllImport("lib/netidx_excel.dll")]
+        // change your own dll directory
+        [DllImport("J:\\office\\user\\ttang\\readonly\\netidx\\addin\\release\\lib\\netidx_excel.dll")]
         public static extern string write_value_string(string path, string value);
 
-        [DllImport("lib/netidx_excel.dll")]
+        [DllImport("J:\\office\\user\\ttang\\readonly\\netidx\\addin\\release\\lib\\netidx_excel.dll")]
         public static extern string write_value_int(string path, int value);
 
-        [DllImport("lib/netidx_excel.dll")]
+        [DllImport("J:\\office\\user\\ttang\\readonly\\netidx\\addin\\release\\lib\\netidx_excel.dll")]
         public static extern string write_value_float(string path, double value);
 
 
