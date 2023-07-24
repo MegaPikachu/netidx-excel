@@ -21,6 +21,7 @@ use netidx::{
 
 pub struct ExcelNetidxWriter {
     events_tx: tokio::sync::mpsc::Sender<WriterEvents>,
+    rt: Runtime,
 }
 
 impl ExcelNetidxWriter {
@@ -55,18 +56,12 @@ impl ExcelNetidxWriter {
     }
 
     pub fn send(&self, path: String, value: Value) -> Result<()>{
-        let rt = tokio::runtime::Builder::new_multi_thread()
-                            .enable_all()
-                            .thread_name("excel-publisher")
-                            .build()
-                            .unwrap();
-        match rt.block_on(async move {
+        match self.rt.block_on(async move {
             self.events_tx.send(WriterEvents::Write(path, value)).await
-        }){
+        }) {
             Ok(_) => Ok(()),
             Err(err) => Err(err.into()),
         }
-        
     }
 }
 
