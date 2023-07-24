@@ -10,7 +10,10 @@ use com::{
 use comglue::glue::NetidxRTD;
 use comglue::interface::CLSID;
 use netidx::subscriber::Value;
-use std::{ffi::{c_void, c_char, CStr, CString}, mem, ptr};
+use std::{
+    ffi::{c_char, c_void, CStr, CString},
+    mem, ptr,
+};
 
 // sadly this doesn't register the class name, just the ID, so we must do all the
 // registration ourselves because excel requires the name to be mapped to the id
@@ -27,31 +30,38 @@ lazy_static::lazy_static! {
 
 // interface of writing value to netidx container
 #[no_mangle]
-pub extern "C" fn write_value_string(path: *const c_char, value: *const c_char) -> *mut c_char {
-    let path = String::from_utf8_lossy(unsafe { CStr::from_ptr(path) }.to_bytes()).to_string();
-    let value = String::from_utf8_lossy(unsafe { CStr::from_ptr(value) }.to_bytes()).to_string();
+pub extern "C" fn write_value_string(
+    path: *const c_char,
+    value: *const c_char,
+) -> *mut c_char {
+    let path =
+        String::from_utf8_lossy(unsafe { CStr::from_ptr(path) }.to_bytes()).to_string();
+    let value =
+        String::from_utf8_lossy(unsafe { CStr::from_ptr(value) }.to_bytes()).to_string();
     return write_value(path, Value::String(value.into()));
 }
 
 #[no_mangle]
 pub extern "C" fn write_value_int(path: *const c_char, value: i64) -> *mut c_char {
-    let path = String::from_utf8_lossy(unsafe { CStr::from_ptr(path) }.to_bytes()).to_string();
+    let path =
+        String::from_utf8_lossy(unsafe { CStr::from_ptr(path) }.to_bytes()).to_string();
     return write_value(path, Value::I64(value));
 }
 
 #[no_mangle]
 pub extern "C" fn write_value_float(path: *const c_char, value: f64) -> *mut c_char {
-    let path = String::from_utf8_lossy(unsafe { CStr::from_ptr(path) }.to_bytes()).to_string();
+    let path =
+        String::from_utf8_lossy(unsafe { CStr::from_ptr(path) }.to_bytes()).to_string();
     return write_value(path, Value::F64(value));
 }
 
 pub fn write_value(path: String, value: Value) -> *mut c_char {
     let result = format!("Publish {}|{}", &path, &value);
-    if let Err(_) = NETIDXWRITER.send(path, value){
+    if let Err(_) = NETIDXWRITER.send(path, value) {
         return CString::new("Write Events to channel error").unwrap().into_raw();
     }
-    let result_cstr = match CString::new(result){
-        Ok(v) => {v},
+    let result_cstr = match CString::new(result) {
+        Ok(v) => v,
         Err(_) => CString::new("Convert result to cstr error").unwrap(),
     };
     return result_cstr.into_raw();
