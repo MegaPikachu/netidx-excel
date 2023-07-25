@@ -55,12 +55,10 @@ impl ExcelNetidxWriter {
     }
 
     pub fn send(&self, path: String, value: Value) -> Result<()> {
-        match self.rt.block_on(async move {
-            self.events_tx.send(WriterEvents::Write(path, value)).await
-        }) {
-            Ok(_) => Ok(()),
-            Err(err) => Err(err.into()),
-        }
+        let events_tx = self.events_tx.clone();
+        self.rt
+            .spawn(async move { events_tx.send(WriterEvents::Write(path, value)).await });
+        Ok(())
     }
 }
 
