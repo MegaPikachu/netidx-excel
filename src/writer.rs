@@ -5,91 +5,79 @@ use netidx::subscriber::Value;
 use netidx::subscriber::{Dval, Subscriber};
 use std::collections::HashMap;
 use tokio::runtime::Runtime;
+use std::sync::Mutex;
 
 use netidx::config::Config;
 use netidx::resolver_client::DesiredAuth;
-use tokio_stream::StreamExt;
+
+#[repr(i16)]
+pub enum Send_result {
+    Maybe_sent = -2,
+    Sent = -1,
+    ExcelErrorNull = 0,
+    ExcelErrorDiv0 = 7,
+    ExcelErrorValue = 15,
+    ExcelErrorRef = 23,
+    ExcelErrorName = 29,
+    ExcelErrorNum = 36,
+    ExcelErrorNA = 42,
+    ExcelErrorGettingData = 43
+}
 
 pub struct ExcelNetidxWriter {
-    events_tx: tokio::sync::mpsc::Sender<WriterEvents>,
+    subscribe_writer: SubscribeWriter,
     rt: Runtime,
 }
 
 impl ExcelNetidxWriter {
     pub fn new() -> ExcelNetidxWriter {
-        let (events_tx, events_rx) = tokio::sync::mpsc::channel::<WriterEvents>(1_024);
         let cfg = Config::load_default().unwrap();
         let rt = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
-            .thread_name("excel-publisher")
+            .thread_name("netidx-writer")
             .build()
             .unwrap();
         let subscriber =
             rt.block_on(
                 async move { Subscriber::new(cfg, DesiredAuth::Anonymous).unwrap() },
             );
-        std::thread::spawn(move || {
-            rt.block_on(async move {
-                let mut subscribe_writer = SubscribeWriter::new(subscriber);
-                let mut events_rx =
-                    Box::pin(tokio_stream::wrappers::ReceiverStream::new(events_rx));
-                loop {
-                    match events_rx.next().await {
-                        Some(WriterEvents::Write(path, value)) => {
-                            let path = Path::from(path);
-                            subscribe_writer.write(&path, value);
-                        }
-                        None => {}
-                    }
-                }
-            });
-        });
+        let subscribe_writer = SubscribeWriter::new(subscriber);
         ExcelNetidxWriter {
-            events_tx,
-            rt: tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .thread_name("excel-publisher")
-                .build()
-                .unwrap(),
+            subscribe_writer,
+            rt,
         }
     }
 
-    pub fn send(&self, path: &str, value: Value) -> Result<()> {
+    pub fn send(&self, path: &str, value: Value) -> Send_result {
         let path = Path::from_str(path);
-        let events_tx = self.events_tx.clone();
-        self.rt
-            .spawn(async move { events_tx.send(WriterEvents::Write(path, value)).await });
-        Ok(())
+        self.subscribe_writer.write(path, value)
     }
-}
-
-pub enum WriterEvents {
-    Write(Path, Value),
 }
 
 struct SubscribeWriter {
     subscriber: Subscriber,
-    subscriptions: HashMap<Path, Dval>,
+    subscriptions: Mutex<HashMap<Path, Dval>>,
 }
 
 impl SubscribeWriter {
     fn new(subscriber: Subscriber) -> Self {
-        SubscribeWriter { subscriber, subscriptions: HashMap::new() }
+        SubscribeWriter { subscriber, subscriptions: HashMap::new().into() }
     }
 
-    fn write(&mut self, path: &Path, value: Value) {
-        let dv = self.add_subscription(&path);
-        if !dv.write(value) {
-            eprintln!("WARNING: {} queued writes to {}", dv.queued_writes(), path)
-        };
-    }
-
-    fn add_subscription(&mut self, path: &Path) -> &Dval {
-        let subscriptions = &mut self.subscriptions;
-        let subscriber = &self.subscriber;
-        subscriptions.entry(path.clone()).or_insert_with(|| {
-            let s = subscriber.subscribe(path.clone());
-            s
-        })
+    fn write(&self, path: Path, value: Value) -> Send_result {
+        let mut subscriptions = self.subscriptions.lock().unwrap();
+        if match subscriptions.get(&path) {
+            Some(sub) => sub.write(value),
+            None => {
+                let sub = self.subscriber.subscribe(path.clone());
+                let result = sub.write(value);
+                subscriptions.insert(path, sub);
+                result
+            }
+        } {
+            Send_result::Sent
+        } else {
+            Send_result::Maybe_sent
+        }
     }
 }

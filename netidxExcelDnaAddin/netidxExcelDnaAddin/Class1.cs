@@ -106,10 +106,14 @@ namespace netidxExcelDnaAddin
                 {
                     result = write_value_string(path, (string)value);
                 }
-                if (result == -1)
-                    return "#SET";
-                else
-                    return (ExcelError)result;
+                switch(result) {
+                    case -1:
+                        return "#SET";
+                    case -2:
+                        return "#MAYBE_SET";
+                    default:
+                        return (ExcelError)result;
+                }
             }
             catch (Exception e)
             {
