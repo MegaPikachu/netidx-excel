@@ -23,7 +23,7 @@ namespace netidxExcelDnaAddin
         [DllImport("kernel32.dll")]
         static extern IntPtr GetProcAddress(IntPtr lib, string proc);
 
-        IntPtr netidx_dll;
+        IntPtr netidx_excel_dll;
 
         private delegate short WriteValueString(string path, string value);
         private delegate short WriteValueInt(string path, int value);
@@ -78,14 +78,14 @@ namespace netidxExcelDnaAddin
                 File.WriteAllBytes(dll_path, ba);
             }
 
-            netidx_dll = LoadLibrary(dll_path);
-            write_value_string = (WriteValueString)Marshal.GetDelegateForFunctionPointer(GetProcAddress(netidx_dll, "write_value_string"), typeof(WriteValueString));
-            write_value_int = (WriteValueInt)Marshal.GetDelegateForFunctionPointer(GetProcAddress(netidx_dll, "write_value_int"), typeof(WriteValueInt));
-            write_value_float = (WriteValueFloat)Marshal.GetDelegateForFunctionPointer(GetProcAddress(netidx_dll, "write_value_float"), typeof(WriteValueFloat));
+            netidx_excel_dll = LoadLibrary(dll_path);
+            write_value_string = (WriteValueString)Marshal.GetDelegateForFunctionPointer(GetProcAddress(netidx_excel_dll, "write_value_string"), typeof(WriteValueString));
+            write_value_int = (WriteValueInt)Marshal.GetDelegateForFunctionPointer(GetProcAddress(netidx_excel_dll, "write_value_int"), typeof(WriteValueInt));
+            write_value_float = (WriteValueFloat)Marshal.GetDelegateForFunctionPointer(GetProcAddress(netidx_excel_dll, "write_value_float"), typeof(WriteValueFloat));
         }
 
         public void AutoClose() {
-            FreeLibrary(netidx_dll);
+            FreeLibrary(netidx_excel_dll);
         }
 
         [ExcelFunction(Description = "Write data to netidx container", IsMacroType = false, IsExceptionSafe = false, IsThreadSafe = true, IsVolatile = false)]
