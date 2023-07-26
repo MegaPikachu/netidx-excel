@@ -17,40 +17,33 @@ namespace netidxExcelDnaAddin
 
         public void AutoClose() { }
 
-        [ExcelFunction(Description = "Write data to netidx container", IsMacroType = false, IsExceptionSafe = false, IsThreadSafe = true, IsVolatile = false)]
+        [ExcelFunction(Description = "Write data to netidx container", IsMacroType = false, IsExceptionSafe = true, IsThreadSafe = true, IsVolatile = false)]
         public static object NetSet(string path, object value)
         {
-            try
+            short result = (short)ExcelError.ExcelErrorNA;
+            if (value is int)
             {
-                short result = (short)ExcelError.ExcelErrorNA;
-                if (value is int)
-                {
-                    result = write_value_int(path, (int)value);
-                }
-                else if (value is double || value is float)
-                {
-                    result = write_value_float(path, (double)value);
-                }
-                else if (value is string)
-                {
-                    result = write_value_string(path, (string)value);
-                }
-                switch(result) {
-                    case -1:
-                        return "#SET";
-                    case -2:
-                        return "#MAYBE_SET";
-                    default:
-                        return (ExcelError)result;
-                }
+                result = write_value_int(path, (int)value);
             }
-            catch (Exception e)
+            else if (value is double || value is float)
             {
-                return e.ToString();
+                result = write_value_float(path, (double)value);
+            }
+            else if (value is string)
+            {
+                result = write_value_string(path, (string)value);
+            }
+            switch(result) {
+                case -1:
+                    return "#SET";
+                case -2:
+                    return "#MAYBE_SET";
+                default:
+                    return (ExcelError)result;
             }
         }
 
-        [ExcelFunction(Description = "Subscribe to a netidx path", IsMacroType = false, IsExceptionSafe = false, IsThreadSafe = true, IsVolatile = false)]
+        [ExcelFunction(Description = "Subscribe to a netidx path", IsMacroType = false, IsExceptionSafe = true, IsThreadSafe = true, IsVolatile = false)]
         public static object NetGet(string path)
         {
             return XlCall.RTD("netidxrtd", null, path);
