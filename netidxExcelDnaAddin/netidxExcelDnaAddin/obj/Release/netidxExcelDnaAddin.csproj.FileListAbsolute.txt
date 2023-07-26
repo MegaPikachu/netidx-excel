@@ -1,9 +1,0 @@
-C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\bin\Release\netidxExcelDnaAddin.dll
-C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\bin\Release\netidxExcelDnaAddin.pdb
-C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Release\netidxExcelDnaAddin.csproj.AssemblyReference.cache
-C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Release\netidxExcelDnaAddin.csproj.CoreCompileInputs.cache
-C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Release\netidxExcelDnaAddin.dll
-C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Release\netidxExcelDnaAddin.pdb
-C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\bin\Release\lib\netidx_excel.dll
-C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Release\netidxExcelDnaAddin.Properties.Resources.resources
-C:\projects\myprojects\our-netidx\publish_to_repo\netidx-excel\netidxExcelDnaAddin\netidxExcelDnaAddin\obj\Release\netidxExcelDnaAddin.csproj.GenerateResource.cache
