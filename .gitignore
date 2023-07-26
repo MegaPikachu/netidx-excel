@@ -3,4 +3,5 @@ Cargo.lock
 /netidxExcelDnaAddin/netidxExcelDnaAddin/obj/**
 /netidxExcelDnaAddin/netidxExcelDnaAddin/bin/**
 /netidxExcelDnaAddin/netidxExcelDnaAddin/lib/**
+/netidxExcelDnaAddin/packages
 /netidxExcelDnaAddin/.vs
