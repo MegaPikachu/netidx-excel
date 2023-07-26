@@ -30,41 +30,41 @@ lazy_static::lazy_static! {
 
 // interface of writing value to netidx container
 #[no_mangle]
-pub extern "C" fn write_value_string(
-    path: *const c_char,
-    value: *const c_char,
-) -> *mut c_char {
-    let path =
-        String::from_utf8_lossy(unsafe { CStr::from_ptr(path) }.to_bytes()).to_string();
-    let value =
-        String::from_utf8_lossy(unsafe { CStr::from_ptr(value) }.to_bytes()).to_string();
-    return write_value(path, Value::String(value.into()));
-}
-
-#[no_mangle]
-pub extern "C" fn write_value_int(path: *const c_char, value: i64) -> *mut c_char {
-    let path =
-        String::from_utf8_lossy(unsafe { CStr::from_ptr(path) }.to_bytes()).to_string();
-    return write_value(path, Value::I64(value));
-}
-
-#[no_mangle]
-pub extern "C" fn write_value_float(path: *const c_char, value: f64) -> *mut c_char {
-    let path =
-        String::from_utf8_lossy(unsafe { CStr::from_ptr(path) }.to_bytes()).to_string();
-    return write_value(path, Value::F64(value));
-}
-
-pub fn write_value(path: String, value: Value) -> *mut c_char {
-    let result = format!("Publish {}|{}", &path, &value);
-    if let Err(_) = NETIDXWRITER.send(path, value) {
-        return CString::new("Write Events to channel error").unwrap().into_raw();
+pub extern "C" fn write_value_string(path: *const c_char,value: *const c_char) -> i16 {
+    match unsafe { CStr::from_ptr(path) }.to_str() {
+        Err(_) => 0,
+        Ok(path) => {
+            match unsafe { CStr::from_ptr(value) }.to_str() {
+                Err(_)=> 0,
+                Ok(value) => {
+                    write_value(path, Value::String(value.into()))
+                }
+            }
+        }
     }
-    let result_cstr = match CString::new(result) {
-        Ok(v) => v,
-        Err(_) => CString::new("Convert result to cstr error").unwrap(),
-    };
-    return result_cstr.into_raw();
+}
+
+#[no_mangle]
+pub extern "C" fn write_value_int(path: *const c_char, value: i64) -> i16 {
+    match unsafe { CStr::from_ptr(path) }.to_str() {
+        Err(_) => 0,
+        Ok(path) => write_value(path, Value::I64(value))
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn write_value_float(path: *const c_char, value: f64) -> i16 {
+    match unsafe { CStr::from_ptr(path) }.to_str() {
+        Err(_) => 0,
+        Ok(path) => write_value(path, Value::F64(value))
+    }
+}
+
+pub fn write_value(path: &str, value: Value) -> i16 {        
+    match NETIDXWRITER.send(path, value) {
+        Ok(_) => -1,
+        Err(_) => 42
+    }
 }
 
 #[no_mangle]

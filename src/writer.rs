@@ -54,7 +54,8 @@ impl ExcelNetidxWriter {
         }
     }
 
-    pub fn send(&self, path: String, value: Value) -> Result<()> {
+    pub fn send(&self, path: &str, value: Value) -> Result<()> {
+        let path = Path::from_str(path);
         let events_tx = self.events_tx.clone();
         self.rt
             .spawn(async move { events_tx.send(WriterEvents::Write(path, value)).await });
@@ -63,7 +64,7 @@ impl ExcelNetidxWriter {
 }
 
 pub enum WriterEvents {
-    Write(String, Value),
+    Write(Path, Value),
 }
 
 struct SubscribeWriter {
