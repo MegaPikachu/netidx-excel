@@ -1,4 +1,3 @@
-use anyhow::Result;
 use netidx::path::Path;
 use netidx::subscriber::Value;
 
@@ -11,8 +10,8 @@ use netidx::config::Config;
 use netidx::resolver_client::DesiredAuth;
 
 #[repr(i16)]
-pub enum Send_result {
-    Maybe_sent = -2,
+pub enum SendResult {
+    MaybeSent = -2,
     Sent = -1,
     ExcelErrorNull = 0,
     ExcelErrorDiv0 = 7,
@@ -30,25 +29,21 @@ pub struct ExcelNetidxWriter {
 }
 
 impl ExcelNetidxWriter {
-    pub fn new() -> ExcelNetidxWriter {
-        let cfg = Config::load_default().unwrap();
+    pub fn new() -> anyhow::Result<ExcelNetidxWriter> {
+        let cfg = Config::load_default()?;
         let rt = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .thread_name("netidx-writer")
-            .build()
-            .unwrap();
+            .build()?;
         let subscriber =
             rt.block_on(
-                async move { Subscriber::new(cfg, DesiredAuth::Anonymous).unwrap() },
-            );
+                async move { Subscriber::new(cfg, DesiredAuth::Anonymous) },
+            )?;
         let subscribe_writer = SubscribeWriter::new(subscriber);
-        ExcelNetidxWriter {
-            subscribe_writer,
-            rt,
-        }
+        Ok(ExcelNetidxWriter { subscribe_writer, rt })
     }
 
-    pub fn send(&self, path: &str, value: Value) -> Send_result {
+    pub fn send(&self, path: &str, value: Value) -> SendResult {
         let path = Path::from_str(path);
         self.subscribe_writer.write(path, value)
     }
@@ -64,7 +59,7 @@ impl SubscribeWriter {
         SubscribeWriter { subscriber, subscriptions: HashMap::new().into() }
     }
 
-    fn write(&self, path: Path, value: Value) -> Send_result {
+    fn write(&self, path: Path, value: Value) -> SendResult {
         let mut subscriptions = self.subscriptions.lock().unwrap();
         if match subscriptions.get(&path) {
             Some(sub) => sub.write(value),
@@ -75,9 +70,9 @@ impl SubscribeWriter {
                 result
             }
         } {
-            Send_result::Sent
+            SendResult::Sent
         } else {
-            Send_result::Maybe_sent
+            SendResult::MaybeSent
         }
     }
 }

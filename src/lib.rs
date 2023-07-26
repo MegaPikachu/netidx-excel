@@ -11,7 +11,7 @@ use comglue::glue::NetidxRTD;
 use comglue::interface::CLSID;
 use netidx::subscriber::Value;
 use std::{
-    ffi::{c_char, c_void, CStr, CString},
+    ffi::{c_char, c_void, CStr},
     mem, ptr,
 };
 
@@ -25,14 +25,14 @@ mod writer;
 use writer::ExcelNetidxWriter;
 
 lazy_static::lazy_static! {
-    static ref NETIDXWRITER: ExcelNetidxWriter = ExcelNetidxWriter::new();
+    static ref NETIDXWRITER: anyhow::Result<ExcelNetidxWriter> = ExcelNetidxWriter::new();
 }
 
 // interface of writing value to netidx container
 #[no_mangle]
-pub extern "C" fn write_value_string(path: *const c_char,value: *const c_char) -> writer::Send_result {
+pub extern "C" fn write_value_string(path: *const c_char,value: *const c_char) -> writer::SendResult {
     match unsafe { CStr::from_ptr(value) }.to_str() {
-        Err(_)=> writer::Send_result::ExcelErrorNA,
+        Err(_)=> writer::SendResult::ExcelErrorNA,
         Ok(value) => {
             write_value(path, Value::String(value.into()))
         }
@@ -40,19 +40,24 @@ pub extern "C" fn write_value_string(path: *const c_char,value: *const c_char) -
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_int(path: *const c_char, value: i64) -> writer::Send_result {
+pub extern "C" fn write_value_int(path: *const c_char, value: i64) -> writer::SendResult {
     write_value(path, Value::I64(value))
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_float(path: *const c_char, value: f64) -> writer::Send_result {
+pub extern "C" fn write_value_float(path: *const c_char, value: f64) -> writer::SendResult {
     write_value(path, Value::F64(value))
 }
 
-pub fn write_value(path: *const c_char, value: Value) -> writer::Send_result {        
+pub fn write_value(path: *const c_char, value: Value) -> writer::SendResult {        
     match unsafe { CStr::from_ptr(path) }.to_str() {
-        Err(_) => writer::Send_result::ExcelErrorNA,
-        Ok(path) => NETIDXWRITER.send(path, value)
+        Err(_) => writer::SendResult::ExcelErrorNA,
+        Ok(path) => {
+            match NETIDXWRITER.as_ref() {
+                Ok(writer) => writer.send(path, value),
+                Err(_) => writer::SendResult::ExcelErrorNull
+            }
+        }
     }
 }
 
