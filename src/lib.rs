@@ -26,6 +26,7 @@ use writer::ExcelNetidxWriter;
 
 lazy_static::lazy_static! {
     static ref NETIDXWRITER: anyhow::Result<ExcelNetidxWriter> = ExcelNetidxWriter::new();
+    static ref EXCEL_BEGIN_TIME: chrono::NaiveDateTime = chrono::NaiveDate::from_ymd_opt(1899,12,31).expect("this should never happen").and_hms_opt(0, 0, 0).expect("this should never happen");
 }
 
 // interface of writing value to netidx container
@@ -49,6 +50,37 @@ pub extern "C" fn write_value_float(path: *const c_char, value: f64) -> writer::
     write_value(path, Value::F64(value))
 }
 
+#[no_mangle]
+pub extern "C" fn write_value_bool(path: *const c_char, value: f64) -> writer::SendResult {
+    if value == 0.0 {
+        return write_value(path, Value::False);
+    }
+    write_value(path, Value::True)
+}
+
+#[no_mangle]
+pub extern "C" fn write_value_timestamp(path: *const c_char, mut value: f64) -> writer::SendResult {
+    if value > 59.0 { // Excel time starts at 1900/01/01 and assumes Feb 1900 has 29 days by mistake
+        value -= 1.0;
+    }
+    if value < 0.0 {
+        return writer::SendResult::ExcelErrorNA;
+    }
+    let date: chrono::NaiveDateTime = *EXCEL_BEGIN_TIME + chrono::Duration::days(value as i64);
+    let seconds = (value.fract() * 86400.0) as i64; // convert to seconds *24.0 * 60.0 * 60.0
+    write_value(path, Value::DateTime(chrono::DateTime::<chrono::Utc>::from_local(date + chrono::Duration::seconds(seconds), chrono::Utc)))
+}
+
+#[no_mangle]
+pub extern "C" fn write_value_error(path: *const c_char, value: *const c_char) -> writer::SendResult {
+    match unsafe { CStr::from_ptr(value) }.to_str() {
+        Err(_)=> writer::SendResult::ExcelErrorNA,
+        Ok(value) => {
+            write_value(path, Value::Error(value.into()))
+        }
+    }
+}
+
 pub fn write_value(path: *const c_char, value: Value) -> writer::SendResult {        
     match unsafe { CStr::from_ptr(path) }.to_str() {
         Err(_) => writer::SendResult::ExcelErrorNA,
@@ -59,6 +91,14 @@ pub fn write_value(path: *const c_char, value: Value) -> writer::SendResult {
             }
         }
     }
+}
+
+#[test]
+fn test_convert_time() {
+    let date: chrono::NaiveDateTime = *EXCEL_BEGIN_TIME + chrono::Duration::days(45133);
+    let seconds = (0.69032 * 86400.0) as i64; // convert to seconds *24.0 * 60.0 * 60.0
+    let datetime = chrono::DateTime::<chrono::Utc>::from_local(date + chrono::Duration::seconds(seconds), chrono::Utc);
+    assert_eq!(&datetime.to_string(), "2023-07-27 16:34:03 UTC");
 }
 
 #[no_mangle]

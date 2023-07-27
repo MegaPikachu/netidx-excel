@@ -12,6 +12,7 @@ categories = ["network-programming"]
 
 [dependencies]
 com = { version = "0.6", features = ["production"] }
+chrono = { version = "^0.4.23", features = ["serde"] } # Only used for compatibility with netidx DateTime 
 log = { version = "0.4", features = ["serde"] }
 simplelog = "0.12"
 once_cell = "1"
