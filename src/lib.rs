@@ -41,21 +41,18 @@ pub extern "C" fn write_value_string(path: *const c_char,value: *const c_char) -
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_int(path: *const c_char, value: i64) -> writer::SendResult {
-    write_value(path, Value::I64(value))
+pub extern "C" fn write_value_i64(path: *const c_char, value: i64) -> writer::SendResult {
+    write_value(path, value.into())
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_float(path: *const c_char, value: f64) -> writer::SendResult {
-    write_value(path, Value::F64(value))
+pub extern "C" fn write_value_f64(path: *const c_char, value: f64) -> writer::SendResult {
+    write_value(path, value.into())
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_bool(path: *const c_char, value: f64) -> writer::SendResult {
-    if value == 0.0 {
-        return write_value(path, Value::False);
-    }
-    write_value(path, Value::True)
+pub extern "C" fn write_value_bool(path: *const c_char, value: bool) -> writer::SendResult {
+    write_value(path, value.into())
 }
 
 #[no_mangle]
