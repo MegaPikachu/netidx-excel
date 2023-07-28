@@ -16,6 +16,8 @@ namespace netidxExcelDnaAddin
         [DllImport("netidx_excel.dll")]
         static extern short write_value_bool(string path, double value);
         [DllImport("netidx_excel.dll")]
+        static extern short write_value_int(string path, int value);
+        [DllImport("netidx_excel.dll")]
         static extern short write_value_error(string path, string value);
         static double TIMEZONE = -TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).Hours/ 24.0;
 
@@ -27,7 +29,7 @@ namespace netidxExcelDnaAddin
         public static object NetSet(string path, object value, string type)
         {
             short result = (short)ExcelError.ExcelErrorNA;
-            if (type == "double" && value is double) // we do not get int from Excel, only get double
+            if (type == "double" && value is double)
             {
                 result = write_value_float(path, (double)value);
             }
@@ -42,6 +44,10 @@ namespace netidxExcelDnaAddin
             else if (type == "bool" && value is double)
             {
                 result = write_value_bool(path, (double)value);
+            }
+            else if (type == "int" && value is double)  // we do not get int from Excel, only get double
+            {
+                result = write_value_int(path, (int)(double)value);
             }
             else
             {
