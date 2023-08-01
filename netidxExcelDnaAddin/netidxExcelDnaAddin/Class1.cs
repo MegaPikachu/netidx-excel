@@ -1,6 +1,7 @@
 ﻿using System;
 using ExcelDna.Integration;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace netidxExcelDnaAddin
 {
@@ -9,7 +10,7 @@ namespace netidxExcelDnaAddin
         [DllImport("netidx_excel.dll")]
         static extern short write_value_f64(string path, double value);
         [DllImport("netidx_excel.dll")]
-        static extern short write_value_string(string path, string value);
+        static extern short write_value_string(string path, byte[] value);
         
         [DllImport("netidx_excel.dll")]
         static extern short write_value_timestamp(string path, double value);
@@ -37,7 +38,7 @@ namespace netidxExcelDnaAddin
             }
             else if (value is string)
             {
-                return write_value_string(path, (string)value);
+                return write_value_string(path, Encoding.UTF8.GetBytes((string)value));
             }
             else
             {
@@ -85,7 +86,7 @@ namespace netidxExcelDnaAddin
         {
             return value as string switch
             {
-                string v => write_value_string(path, v),
+                string v => write_value_string(path, Encoding.UTF8.GetBytes((string)v)),
                 _ => write_value_error(path, value.GetType().Name)
             };
         }
