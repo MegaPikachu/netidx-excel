@@ -31,12 +31,13 @@ lazy_static::lazy_static! {
 
 // interface of writing value to netidx container
 #[no_mangle]
-pub extern "C" fn write_value_string(path: *const c_char,value: *const c_char) -> writer::SendResult {
+pub extern "C" fn write_value_string(
+    path: *const c_char,
+    value: *const c_char,
+) -> writer::SendResult {
     match unsafe { CStr::from_ptr(value) }.to_str() {
-        Err(_)=> writer::SendResult::ExcelErrorNA,
-        Ok(value) => {
-            write_value(path, Value::String(value.into()))
-        }
+        Err(_) => writer::SendResult::ExcelErrorNA,
+        Ok(value) => write_value(path, Value::String(value.to_string().into())),
     }
 }
 
@@ -51,42 +52,55 @@ pub extern "C" fn write_value_f64(path: *const c_char, value: f64) -> writer::Se
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_bool(path: *const c_char, value: bool) -> writer::SendResult {
+pub extern "C" fn write_value_bool(
+    path: *const c_char,
+    value: bool,
+) -> writer::SendResult {
     write_value(path, value.into())
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_timestamp(path: *const c_char, mut value: f64) -> writer::SendResult {
-    if value > 59.0 { // Excel time starts at 1900/01/01 and assumes Feb 1900 has 29 days by mistake
+pub extern "C" fn write_value_timestamp(
+    path: *const c_char,
+    mut value: f64,
+) -> writer::SendResult {
+    if value > 59.0 {
+        // Excel time starts at 1900/01/01 and assumes Feb 1900 has 29 days by mistake
         value -= 1.0;
     }
     if value < 0.0 {
         return writer::SendResult::ExcelErrorNA;
     }
-    let date: chrono::NaiveDateTime = *EXCEL_BEGIN_TIME + chrono::Duration::days(value as i64);
+    let date: chrono::NaiveDateTime =
+        *EXCEL_BEGIN_TIME + chrono::Duration::days(value as i64);
     let seconds = (value.fract() * 86400.0) as i64; // convert to seconds *24.0 * 60.0 * 60.0
-    write_value(path, Value::DateTime(chrono::DateTime::<chrono::Utc>::from_local(date + chrono::Duration::seconds(seconds), chrono::Utc)))
+    write_value(
+        path,
+        Value::DateTime(chrono::DateTime::<chrono::Utc>::from_local(
+            date + chrono::Duration::seconds(seconds),
+            chrono::Utc,
+        )),
+    )
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_error(path: *const c_char, value: *const c_char) -> writer::SendResult {
+pub extern "C" fn write_value_error(
+    path: *const c_char,
+    value: *const c_char,
+) -> writer::SendResult {
     match unsafe { CStr::from_ptr(value) }.to_str() {
-        Err(_)=> writer::SendResult::ExcelErrorNA,
-        Ok(value) => {
-            write_value(path, Value::Error(value.into()))
-        }
+        Err(_) => writer::SendResult::ExcelErrorNA,
+        Ok(value) => write_value(path, Value::Error(value.into())),
     }
 }
 
-pub fn write_value(path: *const c_char, value: Value) -> writer::SendResult {        
+pub fn write_value(path: *const c_char, value: Value) -> writer::SendResult {
     match unsafe { CStr::from_ptr(path) }.to_str() {
         Err(_) => writer::SendResult::ExcelErrorNA,
-        Ok(path) => {
-            match NETIDXWRITER.as_ref() {
-                Ok(writer) => writer.send(path, value),
-                Err(_) => writer::SendResult::ExcelErrorNull
-            }
-        }
+        Ok(path) => match NETIDXWRITER.as_ref() {
+            Ok(writer) => writer.send(path, value),
+            Err(_) => writer::SendResult::ExcelErrorNull,
+        },
     }
 }
 
@@ -94,7 +108,10 @@ pub fn write_value(path: *const c_char, value: Value) -> writer::SendResult {
 fn test_convert_time() {
     let date: chrono::NaiveDateTime = *EXCEL_BEGIN_TIME + chrono::Duration::days(45133);
     let seconds = (0.69032 * 86400.0) as i64; // convert to seconds *24.0 * 60.0 * 60.0
-    let datetime = chrono::DateTime::<chrono::Utc>::from_local(date + chrono::Duration::seconds(seconds), chrono::Utc);
+    let datetime = chrono::DateTime::<chrono::Utc>::from_local(
+        date + chrono::Duration::seconds(seconds),
+        chrono::Utc,
+    );
     assert_eq!(&datetime.to_string(), "2023-07-27 16:34:03 UTC");
 }
 
