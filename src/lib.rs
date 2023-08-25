@@ -73,11 +73,11 @@ pub extern "C" fn write_value_timestamp(
     }
     let date: chrono::NaiveDateTime =
         *EXCEL_BEGIN_TIME + chrono::Duration::days(value as i64);
-    let seconds = (value.fract() * 86400.0) as i64; // convert to seconds *24.0 * 60.0 * 60.0
+    let milliseconds = (value.fract() * 86400.0 * 1000.0) as i64; // convert to milliseconds *24.0 * 60.0 * 60.0 * 1000
     write_value(
         path,
         Value::DateTime(chrono::DateTime::<chrono::Utc>::from_local(
-            date + chrono::Duration::seconds(seconds),
+            date + chrono::Duration::milliseconds(milliseconds),
             chrono::Utc,
         )),
     )
