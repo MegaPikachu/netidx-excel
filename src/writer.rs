@@ -1,13 +1,13 @@
 use netidx::path::Path;
 use netidx::subscriber::Value;
 
+use log::info;
+use netidx::config::Config;
+use netidx::resolver_client::DesiredAuth;
 use netidx::subscriber::{Dval, Subscriber};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use tokio::runtime::Runtime;
-
-use netidx::config::Config;
-use netidx::resolver_client::DesiredAuth;
 
 #[repr(i16)]
 pub enum SendResult {
@@ -73,6 +73,7 @@ impl SubscribeWriter {
         if match subscriptions.get(&path) {
             Some(sub) => sub.write(value),
             None => {
+                info!("Writer: start subscribe path {}", path.clone());
                 let sub = self.subscriber.subscribe(path.clone());
                 let result = sub.write(value);
                 subscriptions.insert(path, sub);
