@@ -20,6 +20,10 @@ namespace netidxExcelDnaAddin
         static extern short write_value_i64(string path, System.Int64 value);
         [DllImport("netidx_excel.dll")]
         static extern short write_value_error(string path, string value);
+        [DllImport("netidx_excel.dll")]
+        static extern short refresh_path(string path);
+        [DllImport("netidx_excel.dll")]
+        static extern short refresh_all();
         static double TIMEZONE = -TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).Hours/ 24.0;
 
         public void AutoOpen() { }
@@ -119,6 +123,38 @@ namespace netidxExcelDnaAddin
         public static object NetGet(string path)
         {
             return XlCall.RTD("netidxrtd", null, path);
+        }
+
+        [ExcelFunction(Description = "Refresh subsciption of a netidx path", IsMacroType = false, IsExceptionSafe = true, IsVolatile = false)]
+        public static object RefreshPath(string path)
+        {
+            short result = (short)ExcelError.ExcelErrorNA;
+            result = refresh_path(path);
+            switch (result)
+            {
+                case -1:
+                    return "#SET";
+                case -2:
+                    return "#MAYBE_SET";
+                default:
+                    return (ExcelError)result;
+            }
+        }
+
+        [ExcelFunction(Description = "Refresh subsciption of all netidx paths", IsMacroType = false, IsExceptionSafe = true, IsVolatile = false)]
+        public static object RefreshAll()
+        {
+            short result = (short)ExcelError.ExcelErrorNA;
+            result = refresh_all();
+            switch (result)
+            {
+                case -1:
+                    return "#SET";
+                case -2:
+                    return "#MAYBE_SET";
+                default:
+                    return (ExcelError)result;
+            }
         }
     }
 }

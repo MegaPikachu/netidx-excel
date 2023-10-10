@@ -104,6 +104,25 @@ pub fn write_value(path: *const c_char, value: Value) -> writer::SendResult {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn refresh_path(path: *const c_char) -> writer::SendResult {
+    match unsafe { CStr::from_ptr(path) }.to_str() {
+        Err(_) => writer::SendResult::ExcelErrorNA,
+        Ok(path) => match NETIDXWRITER.as_ref() {
+            Ok(writer) => writer.refresh_path(path),
+            Err(_) => writer::SendResult::ExcelErrorNull,
+        },
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn refresh_all() -> writer::SendResult {
+    match NETIDXWRITER.as_ref() {
+        Ok(writer) => writer.refresh_all(),
+        Err(_) => writer::SendResult::ExcelErrorNull,
+    }
+}
+
 #[test]
 fn test_convert_time() {
     let date: chrono::NaiveDateTime = *EXCEL_BEGIN_TIME + chrono::Duration::days(45133);

@@ -3,8 +3,8 @@ use netidx::subscriber::Value;
 
 use netidx::subscriber::{Dval, Subscriber};
 use std::collections::HashMap;
-use tokio::runtime::Runtime;
 use std::sync::Mutex;
+use tokio::runtime::Runtime;
 
 use netidx::config::Config;
 use netidx::resolver_client::DesiredAuth;
@@ -20,7 +20,7 @@ pub enum SendResult {
     ExcelErrorName = 29,
     ExcelErrorNum = 36,
     ExcelErrorNA = 42,
-    ExcelErrorGettingData = 43
+    ExcelErrorGettingData = 43,
 }
 
 pub struct ExcelNetidxWriter {
@@ -36,9 +36,7 @@ impl ExcelNetidxWriter {
             .thread_name("netidx-writer")
             .build()?;
         let subscriber =
-            rt.block_on(
-                async move { Subscriber::new(cfg, DesiredAuth::Anonymous) },
-            )?;
+            rt.block_on(async move { Subscriber::new(cfg, DesiredAuth::Anonymous) })?;
         let subscribe_writer = SubscribeWriter::new(subscriber);
         Ok(ExcelNetidxWriter { subscribe_writer, rt })
     }
@@ -46,6 +44,17 @@ impl ExcelNetidxWriter {
     pub fn send(&self, path: &str, value: Value) -> SendResult {
         let path = Path::from_str(path);
         self.subscribe_writer.write(path, value)
+    }
+
+    pub fn refresh_path(&self, path: &str) -> SendResult {
+        let path = Path::from_str(path);
+        self.subscribe_writer.refresh_path(path);
+        SendResult::Sent
+    }
+
+    pub fn refresh_all(&self) -> SendResult {
+        self.subscribe_writer.refresh_all();
+        SendResult::Sent
     }
 }
 
@@ -74,5 +83,17 @@ impl SubscribeWriter {
         } else {
             SendResult::MaybeSent
         }
+    }
+
+    // A temp solution for manual refresh
+    fn refresh_path(&self, path: Path) {
+        let mut subscriptions = self.subscriptions.lock().unwrap();
+        subscriptions.remove(&path);
+    }
+
+    // A temp solution for manual refresh
+    fn refresh_all(&self) {
+        let mut subscriptions = self.subscriptions.lock().unwrap();
+        subscriptions.clear();
     }
 }
