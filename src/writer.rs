@@ -25,7 +25,6 @@ pub enum SendResult {
 
 pub struct ExcelNetidxWriter {
     subscribe_writer: SubscribeWriter,
-    rt: Runtime,
 }
 
 impl ExcelNetidxWriter {
@@ -37,13 +36,13 @@ impl ExcelNetidxWriter {
             .build()?;
         let subscriber =
             rt.block_on(async move { Subscriber::new(cfg, DesiredAuth::Anonymous) })?;
-        let subscribe_writer = SubscribeWriter::new(subscriber);
-        Ok(ExcelNetidxWriter { subscribe_writer, rt })
+        let subscribe_writer = SubscribeWriter::new(subscriber, rt);
+        Ok(ExcelNetidxWriter { subscribe_writer })
     }
 
     pub fn send(&self, path: &str, value: Value) -> SendResult {
         let path = Path::from_str(path);
-        self.subscribe_writer.write(path, value)
+        self.subscribe_writer.write_with_recipt(path, value)
     }
 
     pub fn refresh_path(&self, path: &str) -> SendResult {
@@ -58,18 +57,23 @@ impl ExcelNetidxWriter {
     }
 }
 
+lazy_static::lazy_static! {
+    static ref SUBSCRIPTIONS: Mutex<HashMap<Path, Dval>>= Mutex::new(HashMap::new());
+    static ref WRITER_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
+}
+
 struct SubscribeWriter {
     subscriber: Subscriber,
-    subscriptions: Mutex<HashMap<Path, Dval>>,
+    rt: Runtime,
 }
 
 impl SubscribeWriter {
-    fn new(subscriber: Subscriber) -> Self {
-        SubscribeWriter { subscriber, subscriptions: HashMap::new().into() }
+    fn new(subscriber: Subscriber, rt: Runtime) -> Self {
+        SubscribeWriter { subscriber, rt }
     }
 
     fn write(&self, path: Path, value: Value) -> SendResult {
-        let mut subscriptions = self.subscriptions.lock().unwrap();
+        let mut subscriptions = SUBSCRIPTIONS.lock().unwrap();
         if match subscriptions.get(&path) {
             Some(sub) => sub.write(value),
             None => {
@@ -86,15 +90,70 @@ impl SubscribeWriter {
         }
     }
 
+    fn write_with_recipt(&self, path: Path, value: Value) -> SendResult {
+        async fn wait_result(
+            result: futures::channel::oneshot::Receiver<Value>,
+            path: &Path,
+        ) {
+            match tokio::time::timeout(*WRITER_WAIT_TIMEOUT, result).await {
+                Ok(result) => {
+                    match result {
+                        Ok(_) => {}
+                        Err(err) => {
+                            log::warn!(
+                        "Writer: write error for {}, try to refresh the connection, err = {}",
+                        path,
+                        &err
+                    );
+                            let mut subscriptions = SUBSCRIPTIONS.lock().unwrap();
+                            subscriptions.remove(path);
+                        }
+                    };
+                }
+                Err(err) => {
+                    log::warn!(
+                        "Writer: write timeout for {}, try to refresh the connection, err = {}",
+                        path,
+                        &err
+                    );
+                    let mut subscriptions = SUBSCRIPTIONS.lock().unwrap();
+                    subscriptions.remove(path);
+                }
+            };
+        }
+
+        let mut subscriptions = SUBSCRIPTIONS.lock().unwrap();
+        let path_copy = path.clone();
+        match subscriptions.get(&path) {
+            Some(sub) => {
+                let result = sub.write_with_recipt(value);
+                self.rt.spawn(async move {
+                    wait_result(result, &path_copy).await;
+                });
+            }
+            None => {
+                let sub = self.subscriber.subscribe(path.clone());
+                let result = sub.write_with_recipt(value);
+                self.rt.spawn(async move {
+                    wait_result(result, &path_copy).await;
+                });
+                subscriptions.insert(path, sub);
+            }
+        };
+        SendResult::MaybeSent
+    }
+
     // A temp solution for manual refresh
     fn refresh_path(&self, path: Path) {
-        let mut subscriptions = self.subscriptions.lock().unwrap();
+        info!("Writer: Refresh Path {}", &path);
+        let mut subscriptions = SUBSCRIPTIONS.lock().unwrap();
         subscriptions.remove(&path);
     }
 
     // A temp solution for manual refresh
     fn refresh_all(&self) {
-        let mut subscriptions = self.subscriptions.lock().unwrap();
+        info!("Writer: Refresh all paths");
+        let mut subscriptions = SUBSCRIPTIONS.lock().unwrap();
         subscriptions.clear();
     }
 }
