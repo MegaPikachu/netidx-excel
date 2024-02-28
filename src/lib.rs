@@ -52,6 +52,11 @@ pub extern "C" fn write_value_f64(path: *const c_char, value: f64) -> writer::Se
 }
 
 #[no_mangle]
+pub extern "C" fn write_value_null(path: *const c_char) -> writer::SendResult {
+    write_value(path, Value::Null)
+}
+
+#[no_mangle]
 pub extern "C" fn write_value_bool(
     path: *const c_char,
     value: bool,

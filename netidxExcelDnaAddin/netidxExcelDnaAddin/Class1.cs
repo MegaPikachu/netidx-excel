@@ -10,6 +10,8 @@ namespace netidxExcelDnaAddin
         [DllImport("netidx_excel.dll")]
         static extern short write_value_f64(string path, double value);
         [DllImport("netidx_excel.dll")]
+        static extern short write_value_null(string path);
+        [DllImport("netidx_excel.dll")]
         static extern short write_value_string(string path, byte[] value);
         
         [DllImport("netidx_excel.dll")]
@@ -68,6 +70,11 @@ namespace netidxExcelDnaAddin
             };
         }
 
+        static short try_write_null(string path)
+        {
+            return write_value_null(path);
+        }
+
         static short try_write_time(string path, object value)
         {
             return value as double? switch
@@ -104,6 +111,7 @@ namespace netidxExcelDnaAddin
                 "" => try_write_auto(path, value),
                 "f64" => try_write_f64(path, value),
                 "i64" => try_write_i64(path, value),
+                "null" => try_write_null(path),
                 "time" => try_write_time(path, value),
                 "string" => try_write_string(path, value),
                 "bool" => try_write_bool(path, value),
