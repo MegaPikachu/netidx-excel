@@ -34,40 +34,56 @@ lazy_static::lazy_static! {
 pub extern "C" fn write_value_string(
     path: *const c_char,
     value: *const c_char,
+    request_type: writer::RequestType,
 ) -> writer::SendResult {
     match unsafe { CStr::from_ptr(value) }.to_str() {
         Err(_) => writer::SendResult::ExcelErrorNA,
-        Ok(value) => write_value(path, Value::String(value.to_string().into())),
+        Ok(value) => {
+            write_value(path, Value::String(value.to_string().into()), request_type)
+        }
     }
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_i64(path: *const c_char, value: i64) -> writer::SendResult {
-    write_value(path, value.into())
+pub extern "C" fn write_value_i64(
+    path: *const c_char,
+    value: i64,
+    request_type: writer::RequestType,
+) -> writer::SendResult {
+    write_value(path, value.into(), request_type)
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_f64(path: *const c_char, value: f64) -> writer::SendResult {
-    write_value(path, value.into())
+pub extern "C" fn write_value_f64(
+    path: *const c_char,
+    value: f64,
+    request_type: writer::RequestType,
+) -> writer::SendResult {
+    write_value(path, value.into(), request_type)
 }
 
 #[no_mangle]
-pub extern "C" fn write_value_null(path: *const c_char) -> writer::SendResult {
-    write_value(path, Value::Null)
+pub extern "C" fn write_value_null(
+    path: *const c_char,
+    request_type: writer::RequestType,
+) -> writer::SendResult {
+    write_value(path, Value::Null, request_type)
 }
 
 #[no_mangle]
 pub extern "C" fn write_value_bool(
     path: *const c_char,
     value: bool,
+    request_type: writer::RequestType,
 ) -> writer::SendResult {
-    write_value(path, value.into())
+    write_value(path, value.into(), request_type)
 }
 
 #[no_mangle]
 pub extern "C" fn write_value_timestamp(
     path: *const c_char,
     mut value: f64,
+    request_type: writer::RequestType,
 ) -> writer::SendResult {
     if value > 59.0 {
         // Excel time starts at 1900/01/01 and assumes Feb 1900 has 29 days by mistake
@@ -85,6 +101,7 @@ pub extern "C" fn write_value_timestamp(
             date + chrono::Duration::milliseconds(milliseconds),
             chrono::Utc,
         )),
+        request_type,
     )
 }
 
@@ -92,18 +109,26 @@ pub extern "C" fn write_value_timestamp(
 pub extern "C" fn write_value_error(
     path: *const c_char,
     value: *const c_char,
+    request_type: writer::RequestType,
 ) -> writer::SendResult {
     match unsafe { CStr::from_ptr(value) }.to_str() {
         Err(_) => writer::SendResult::ExcelErrorNA,
-        Ok(value) => write_value(path, Value::Error(value.into())),
+        Ok(value) => write_value(path, Value::Error(value.into()), request_type),
     }
 }
 
-pub fn write_value(path: *const c_char, value: Value) -> writer::SendResult {
+pub fn write_value(
+    path: *const c_char,
+    value: Value,
+    request_type: writer::RequestType,
+) -> writer::SendResult {
     match unsafe { CStr::from_ptr(path) }.to_str() {
         Err(_) => writer::SendResult::ExcelErrorNA,
         Ok(path) => match NETIDXWRITER.as_ref() {
-            Ok(writer) => writer.send(path, value),
+            Ok(writer) => match request_type {
+                writer::RequestType::Async => writer.send_async(path, value),
+                writer::RequestType::Retry => writer.send_retry(path, value),
+            },
             Err(_) => writer::SendResult::ExcelErrorNull,
         },
     }
