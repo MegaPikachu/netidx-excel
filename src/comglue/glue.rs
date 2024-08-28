@@ -242,7 +242,7 @@ com::class! {
                 2 => {
                     debug!("ConnectData");
                     match dispatch_connect_data(&self.server, params) {
-                        Ok(()) => { *result = Variant::from(1); },
+                        Ok(()) => { *result = Variant::from("#REQUESTING"); },
                         Err(e) => {
                             error!("connect_data invalid arg {}", e);
                             *result = Variant::error();
